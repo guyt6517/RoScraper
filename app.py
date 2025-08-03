@@ -76,7 +76,7 @@ def check_roblox_link():
 
 @app.route("/")
 def home():
-    return "oblox NSFW Content Scanner Running."
+    return "Roblox NSFW Content Scanner Running."
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
