@@ -5,10 +5,17 @@ from flask import Flask, request, jsonify
 import requests
 from PIL import Image
 from nsfw_detector import predict
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env variables
 
 # Constants
 MODEL_PATH = "./nsfw_model"
 LOG_FILE = "violation_log.txt"
+DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
+
+# ... rest of your code unchanged ...
+
 
 # Ensure NSFW model is downloaded
 def ensure_model():
