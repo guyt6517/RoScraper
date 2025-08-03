@@ -7,15 +7,14 @@ from PIL import Image
 from nsfw_detector import predict
 from dotenv import load_dotenv
 
-load_dotenv()  # Load .env variables
+# Load environment variables from .env in local development
+if not os.environ.get("DISCORD_WEBHOOK_URL"):
+    load_dotenv()
 
 # Constants
 MODEL_PATH = "./nsfw_model"
 LOG_FILE = "violation_log.txt"
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
-
-# ... rest of your code unchanged ...
-
 
 # Ensure NSFW model is downloaded
 def ensure_model():
@@ -25,17 +24,13 @@ def ensure_model():
 
 ensure_model()
 
-# Load model once
+# Load NSFW model once
 model = predict.load_model(MODEL_PATH)
 
 # Initialize Flask app
 app = Flask(__name__)
 
 def classify_image(image: Image.Image) -> str:
-    """
-    Save image temporarily and classify with nsfw-detector.
-    Returns a string reason or "Safe".
-    """
     temp_path = "temp.jpg"
     image.save(temp_path)
     result = predict.classify(model, temp_path)
@@ -53,11 +48,21 @@ def log_violation(link: str, reason: str):
     with open(LOG_FILE, "a") as f:
         f.write(f"[{datetime.utcnow()}] LINK: {link} | REASON: {reason}\n")
 
+def send_to_discord(message: str):
+    if not DISCORD_WEBHOOK_URL:
+        print("Discord webhook URL not set, skipping sending to Discord.")
+        return
+    payload = {
+        "content": message
+    }
+    try:
+        response = requests.post(DISCORD_WEBHOOK_URL, json=payload)
+        if response.status_code != 204:
+            print(f"Failed to send to Discord webhook: {response.status_code} {response.text}")
+    except Exception as e:
+        print(f"Error sending to Discord webhook: {e}")
+
 def download_image_from_url(url: str) -> Image.Image:
-    """
-    Download an image from a URL and return a PIL Image object.
-    Raises on failure.
-    """
     response = requests.get(url)
     if not response.ok:
         raise Exception(f"Failed to download image, status code {response.status_code}")
@@ -68,13 +73,14 @@ def check_roblox_link():
     data = request.json
     if not data or "url" not in data:
         return jsonify({"error": "Missing 'url' in JSON body"}), 400
-    
+
     url = data["url"]
     try:
         image = download_image_from_url(url)
         result = classify_image(image)
         if result != "Safe":
             log_violation(url, result)
+            send_to_discord(f"🚨 NSFW Violation Detected!\nLink: {url}\nReason: {result}\nTime: {datetime.utcnow()} UTC")
             return jsonify({"status": "Violation detected", "reason": result}), 200
         else:
             return jsonify({"status": "Clean"}), 200
