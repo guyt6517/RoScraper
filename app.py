@@ -6,6 +6,8 @@ import requests
 from PIL import Image
 from nsfw_detector import predict
 from dotenv import load_dotenv
+import zipfile
+from io import BytesIO
 
 # Load environment variables from .env in local development
 if not os.environ.get("DISCORD_WEBHOOK_URL"):
@@ -15,12 +17,21 @@ if not os.environ.get("DISCORD_WEBHOOK_URL"):
 MODEL_PATH = "./nsfw_model"
 LOG_FILE = "violation_log.txt"
 DISCORD_WEBHOOK_URL = os.environ.get("DISCORD_WEBHOOK_URL")
+MODEL_ZIP_URL = "https://your-model-download-link.zip"  # <--- Put your actual model zip URL here
 
-# Ensure NSFW model is downloaded
+# Ensure NSFW model is downloaded and extracted
+def download_and_extract_model(url, path):
+    print(f"Downloading NSFW model from {url}...")
+    r = requests.get(url)
+    r.raise_for_status()
+    with zipfile.ZipFile(BytesIO(r.content)) as z:
+        z.extractall(path)
+    print("Model downloaded and extracted.")
+
 def ensure_model():
     if not os.path.exists(MODEL_PATH):
-        print("Downloading NSFW model...")
-        predict.download_model(MODEL_PATH)
+        os.makedirs(MODEL_PATH, exist_ok=True)
+        download_and_extract_model(MODEL_ZIP_URL, MODEL_PATH)
 
 ensure_model()
 
