@@ -5,6 +5,21 @@ import io
 from PIL import Image
 from datetime import datetime
 from nsfw_detector import predict
+import os
+from nsfw_detector import predict
+
+MODEL_PATH = "./nsfw_model"
+
+def ensure_model():
+    if not os.path.exists(MODEL_PATH):
+        print("Downloading NSFW model...")
+        predict.download_model(MODEL_PATH)
+
+ensure_model()
+model = predict.load_model(MODEL_PATH)
+
+
+
 
 # Load NSFW classifier
 model = predict.load_model("./nsfw_model")  # Downloaded model folder path
